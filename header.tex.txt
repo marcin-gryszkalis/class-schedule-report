@@ -1,0 +1,26 @@
+\documentclass[10pt,a4paper,oneside]{mwbk}
+
+\usepackage[MeX]{polski}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage{rotating}
+\usepackage{anysize}
+\input tap
+
+\pagestyle{empty}
+%# A0, 1189mm * 841mm
+%# A1, 841mm * 594mm
+%# A2, 594mm * 420mm
+%# A3, 420mm * 297mm
+\papersize{700mm}{594mm}
+\marginsize{1cm}{1cm}{1cm}{1cm}
+%\marginsize{0cm}{0cm}{0cm}{0cm}
+
+\begin{document}
+\sffamily%\bfseries
+%\begin{center}
+%\huge\bfseries TYGODNIOWY ROZK£AD ZAJÊÆ\\
+%\end{center}
+\begintable
+\begintableformat &\center \endtableformat
