@@ -322,7 +322,7 @@ while(<P>)
             $kls->{$v{klasa}}->{$hscale{$weekday} + $h} = \%hv;
             die "OVER5 $v{nauczyciel} $hscale{$weekday} + $h $v{klasa} $v{nauczyciel} ".Dumper(\%hv) if exists $tcr->{$v{nauczyciel}}->{$hscale{$weekday} + $h};
             $tcr->{$v{nauczyciel}}->{$hscale{$weekday} + $h} = \%hv;
-            die "OVER6 $v{sala} $hscale{$weekday} + $h $v{klasa} $v{nauczyciel}".Dumper($room->{$v{sala}}->{$hscale{$weekday} + $h}) if exists $room->{$v{sala}}->{$hscale{$weekday} + $h};
+            die "OVER6 $v{sala} $hscale{$weekday} + $h $v{klasa} $v{nauczyciel} [ ".Dumper($room->{$v{sala}}->{$hscale{$weekday} + $h}) . " ]\n " if exists $room->{$v{sala}}->{$hscale{$weekday} + $h};
             $room->{$v{sala}}->{$hscale{$weekday} + $h} = \%hv;
         }
         else # split for C D W
@@ -761,7 +761,7 @@ close(R);
 #################################
 # report 4
 # teachers/small
-for my $use_colors (0..1)
+for my $use_colors (0..2)
 {
 
 print STDERR "### R4 use_colors=$use_colors\n" if $DEBUG;
@@ -852,7 +852,7 @@ foreach my $t (sort keys %teachers)
                     my $s = $x->{sala};
                     $s = "-" if $s > 1000;
                     $s = $ini->{sale}->{$s} if exists $ini->{sale}->{$s};
-                    $p = '\X{' . $ini->{przedmioty}->{$x->{przedmiot}} . '\\\\' . "$s $p }";
+                    $p = '\X{' . $ini->{przedmioty}->{$x->{przedmiot}} . '\\\\' . "$p [$s] }";
                 }
                 else
                 {
@@ -882,7 +882,7 @@ foreach my $t (sort keys %teachers)
 
                     $thisklasa = $p;
 
-                    $p = '\X{' . $pp . '\\\\' . "$s $p" . '}';
+                    $p = '\X{' . $pp . '\\\\' . "$p [$s]" . '}';
 
                 }
 
@@ -929,7 +929,7 @@ foreach my $t (sort keys %teachers)
 
     }
     print R '\endanchtable ', "\n\n\n";
-    print(R '\clearpage', "\n") if ($k%2 == 0);
+    print(R '\clearpage', "\n") if $use_colors == 2; # ($k%2 == 0);
 }
 
 

@@ -43,24 +43,26 @@ for (1..3)
     print `poster -v  -s${s}   -mA4 -o ${n}_poster.ps ${n}.eps`;
 }
 
-printf `latex r4_0.tex`;
-`dvips -o r4_0.ps r4_0.dvi`;
-
-# hack to clean L/- L entries
-open(my $fx, "r4_1.tex");
-open(my $fy, ">r4_1x.tex");
-while (<$fx>)
+for my $uc (0..2)
 {
-    s/\\X{L[^}]+}/\\X{}/g;
-    print $fy $_;
+    printf `latex r4_$uc.tex`;
+    `dvips -o r4_$uc.ps r4_$uc.dvi`;
+
+    # hack to clean L/- L entries
+    open(my $fx, "r4_$uc.tex");
+    open(my $fy, ">r4_${uc}x.tex");
+    while (<$fx>)
+    {
+        s/\\X{L[^}]+}/\\X{}/g;
+        print $fy $_;
+    }
+
+    unlink "r4_$uc.tex";
+    `cp "r4_${uc}x.tex" "r4_$uc.tex"`;
+
+    printf `latex r4_$uc.tex`;
+    `dvips -o r4_$uc.ps r4_$uc.dvi`;
 }
-
-
-unlink "r4_1.tex";
-`cp "r4_1x.tex" "r4_1.tex"`;
-
-printf `latex r4_1.tex`;
-`dvips -o r4_1.ps r4_1.dvi`;
 
 for (<*.ps>)
 {
