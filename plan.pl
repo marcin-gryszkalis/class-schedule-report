@@ -65,6 +65,9 @@ sub namei($)
     my $t = shift;
     my $imie = $t->{imie};
     my $nazwisko  = $t->{nazwisko};
+
+    return 'Liceum' if $nazwisko eq 'Rezerwacja'; ### XXX ugly XXX
+
     $imie =~ s/^(.).*/uc($1)/ge;
     $imie .= '.';
     return "$imie $nazwisko";
@@ -176,6 +179,8 @@ my $tcr;
 # tcr->{nn}->{11}->...
 my $room;
 # room->{000}->{11}->...
+my $reservation;
+
 while(<P>)
 {
     $uid++;
@@ -186,26 +191,44 @@ while(<P>)
 
     if (/^\[(.*)\]/) # teacher line, defaults
     {
-        my @a = split /\s+/, $1;
-        $imie = shift @a;
-        $nazwisko = shift @a;
-        print STDERR "## prsn=$nazwisko\n" if $DEBUG;
-        %defaults = ();
-        foreach (@a)
+        $reservation = 0;
+        my $tname = $1;
+        if ($tname =~ /^Rezerwacja/i)
         {
-            if (/^(\d+)$/) { $defaults{sala} = $1; }
-            if (/^([A-Z])$/) { $defaults{flaga}->{$1} = 1; }
-            if (/^([a-z]+)$/) { $defaults{przedmiot} = $1; }
-            if (/^(\d[a-z]+)$/) { $defaults{klasa} = klasafix($1); }
-        }
-        print STDERR "## defaults=",Dumper \%defaults,"\n" if $DEBUG;
+            print STDERR "## Rezerwacja mode\n" if $DEBUG;
 
-        my %tdata = (
-            imie => $imie,
-            nazwisko => $nazwisko,
-            imie_nazwisko => "$imie $nazwisko",
-        );
-        $teachers{"$nazwisko $imie"} = \%tdata;
+            my %tdata = (
+                imie => "",
+                nazwisko => "Rezerwacja",
+                imie_nazwisko => "Rezerwacja",
+            );
+            $teachers{"Rezerwacja"} = \%tdata;
+
+            $reservation = 1;
+        }
+        else
+        {
+            my @a = split /\s+/, $tname;
+            $imie = shift @a;
+            $nazwisko = shift @a;
+            print STDERR "## prsn=$nazwisko\n" if $DEBUG;
+            %defaults = ();
+            foreach (@a)
+            {
+                if (/^(\d+)$/) { $defaults{sala} = $1; }
+                if (/^([A-Z])$/) { $defaults{flaga}->{$1} = 1; }
+                if (/^([a-z]+)$/) { $defaults{przedmiot} = $1; }
+                if (/^(\d[a-z]+)$/) { $defaults{klasa} = klasafix($1); }
+            }
+            print STDERR "## defaults=",Dumper \%defaults,"\n" if $DEBUG;
+
+            my %tdata = (
+                imie => $imie,
+                nazwisko => $nazwisko,
+                imie_nazwisko => "$imie $nazwisko",
+            );
+            $teachers{"$nazwisko $imie"} = \%tdata;
+        }
         next;
     }
 
@@ -218,8 +241,27 @@ while(<P>)
     if (/^(\d)(\s+(.*))?/)
     {
         my $h = $1;
-
         print STDERR "# h=$h\n" if $DEBUG;
+
+        if ($reservation)
+        {
+            # let's assume $3 == room
+            my $rsv = $3;
+            chomp $rsv;
+
+            my %hv = (
+                sala => $rsv,
+                przedmiot => "Rezerwacja",
+                nauczyciel => "Rezerwacja",
+                godzina => $hscale{$weekday} + $h,
+                klasa => "-",
+            );
+
+            $room->{$rsv}->{$hscale{$weekday} + $h} = \%hv;
+            print STDERR "# reservation for room[$rsv]\n" if $DEBUG;
+            next;
+        }
+
 
         # merge defaults with current into %v
         my %v = %defaults;
