@@ -888,8 +888,11 @@ foreach my $t (sort keys %teachers)
     print R '\=', "\n";
 
     # przerwa przed 1 lekcją
-    print R '\B!: ! ', fgodz($ini->{przerwy}->{$hours_start-1}), ' ! ! ! ! ! \E!',"\n";
-    print R '\-', "\n";
+    if ($hours_start > 0)
+    {
+        print R '\B!: ! ', fgodz($ini->{przerwy}->{$hours_start-1}), ' ! ! ! ! ! \E!',"\n";
+        print R '\-', "\n";
+    }
 
     my $anchor = 0;
     for my $h ($hours_start..$hours_end) # (0..9)
