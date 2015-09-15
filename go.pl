@@ -5,10 +5,13 @@ print `perl plan.pl`;
 $maxpages = 2;
 
 $step = 0.06;
-for (1..3)
+foreach (<r*.tex>)
 {
-    $n = "r$_";
- #next if $n eq 'r2';
+    $n = "$_";
+    $n =~ s/\..*//;
+
+    next if $n =~ m/^r4/; # r4* below
+
     print "making $n\n";
     printf `latex $n.tex`;
     #printf
@@ -21,6 +24,7 @@ for (1..3)
     # ok for nauczyciele
     #printf
     #`dvips -x 555 -y 555 -o ${n}_med.ps $n.dvi`;
+
 
 
     #printf `poster -v -s1 -iA2 -mA4 -o ${n}_poster.ps $n.ps`;

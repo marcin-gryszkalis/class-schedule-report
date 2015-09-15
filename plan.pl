@@ -421,9 +421,22 @@ print STDERR "# sale: $rooms_no\n";
 #################################
 # report 1
 # teachers/hours
-print STDERR "### R1\n" if $DEBUG;
-open(R, ">r1.tex");
+for my $r1mode (1..2)
+{
+print STDERR "### R1 - $r1mode\n" if $DEBUG;
+open(R, ">r1_$r1mode.tex");
 open(H, "header.tex.txt"); while (<H>) { print R $_; }; close(H);
+print R "\\begintable\\begintableformat &\\center \\endtableformat\n";
+
+if ($r1mode == 2)
+{
+    $klasy_no = 0;
+    foreach (sort keys %klasy)
+    {
+        next if /^[01-3]/; ### XXX custom - only class 4+
+        $klasy_no++;
+    }
+}
 
 print R '\=', "\n";
 print R '\B!=2cm ! ! ! @'.($klasy_no*2-1).' \center{\Huge\sffamily\bfseries K~L~A~S~Y} " \center{\Large\bfseries '.$YEAR.'} \E!', "\n";
@@ -431,6 +444,7 @@ print R '\B!- ! ! ! @'.($klasy_no*2).' \= \E!', "\n";
 print R '\B!=0.8cm ! ! ';
 foreach (sort keys %klasy)
 {
+    next if $r1mode == 2 && /^[01-3]/; ### XXX custom - only class 4+
     print R '! @2 \center{\Large ', $klasy{$_},' ~ ~ ~ ', $ini->{klasa_sala}->{klasaunfix($_)}, '} ';
 }
 print R '\E!', "\n";
@@ -438,6 +452,7 @@ print R '\E!', "\n";
 print R '\B!=0.5cm \Y{\begin{sideways} ~ ~ ~ ~ ~ Dni tygodnia\end{sideways}} ! \X{\begin{sideways} ~ ~ ~ ~ ~ ~ ~ Godzina lekcyjna\end{sideways}} ! Czas trwania ';
 foreach (sort keys %klasy)
 {
+    next if $r1mode == 2 && /^[01-3]/; ### XXX custom - only class 4+
     my $wych = $wychowawcy{$_} ? namei($teachers{$wychowawcy{$_}}) : "nieznany";
     print R '! @2 \center{', $wych, '} ';
 }
@@ -458,6 +473,7 @@ for my $d (1..5)
         my $k = 0;
         foreach (sort keys %{$kls})
         {
+            next if $r1mode == 2 && /^[01-3]/; ### XXX custom - only class 4+
             $k++;
 
             my $x = $kls->{$_}->{$d * 10 + $h};
@@ -570,7 +586,9 @@ print R $footer;
 open(H, "footer.tex.txt"); while (<H>) { print R $_; }; close(H);
 close(R);
 
+}
 
+$klasy_no = scalar keys %klasy; # restore proper val after r1mode==2, just in case
 
 #################################
 # report 2
@@ -578,10 +596,33 @@ close(R);
 print STDERR "### R2\n" if $DEBUG;
 open(R, ">r2.tex");
 open(H, "header.tex.txt"); while (<H>) { print R $_; }; close(H);
+print R "\\beginanchtable\\begintableformat &\\center \\endtableformat\n";
+
+my $anchor = 0;
+
+
+my $ovcolor = '{ 0 0 0 0.15 }';
+my $k = 0;
+my $prerow = "";
+my $postrow = "";
+foreach (sort keys %teachers)
+{
+    $k++;
+    if ($k % 2 == 1) 
+    {
+        $anchor++;
+        my $col = $k + 3;
+        $prerow .= "\\brectangle nl $col \{anchor$anchor\} ";
+        $postrow .= "\\erectangle $ovcolor nr $col \{anchor$anchor\} ";
+    }
+}
 
 print R '\=', "\n";
 print R '\B!=2cm ! ! ! @'.($teachers_no-3).' \center{\Huge\sffamily\bfseries N A U C Z Y C I E L E}  " @3 \center{\Large\bfseries '.$YEAR.'} \E!', "\n";
 print R '\B!- ! ! ! @'.($teachers_no).' \= \E!', "\n";
+
+print R "\n$prerow\n";
+
 print R '\B!: \X{\begin{sideways}Dni tygodnia\end{sideways}} ! \X{\begin{sideways}Godzina lekcyjna\end{sideways}} ! Czas trwania ';
 foreach (sort keys %teachers)
 {
@@ -591,27 +632,28 @@ print R '\E!', "\n";
 
 print R '\=', "\n";
 
+
 for my $d (1..5)
 {
     for my $h ($hours_start..$hours_end) # (0..9)
     {
-
-        print R '\B!=1cm ';
-        print(R '\X{\begin{sideways}\Large ', $ini->{dnitygodnia}->{$d}, '\end{sideways}} ') if $h == 4;
-
-        print R " ! $h. ";
-        print R " ! ", fgodz($ini->{godziny}->{$h}), " ! ";
-
-
         my $k = 0;
+        my $p = "";
+
+        $p .= '\B!=1cm ';
+        $p .= '\X{\begin{sideways}\Large '.($ini->{dnitygodnia}->{$d}).'\end{sideways}} ' if $h == 4;
+
+        $p .= " ! $h. ";
+        $p .= " ! ".(fgodz($ini->{godziny}->{$h}))." ! ";
+
         foreach (sort keys %teachers)
         {
             $k++;
 
             my $x = $tcr->{$_}->{$d * 10 + $h};
 
-            my $p = "";
             my $s = undef;
+            my $pp = "";
             if ($x)
             {
                 if (exists $x->{przedmiot}) # no join
@@ -620,20 +662,20 @@ for my $d (1..5)
                     {
                         if ($x->{przedmiot} =~ /^t[ms]$/)
                         {
-                            $p = "T"; # tuzinki
+                            $pp .= "T"; # tuzinki
                         }
                         elsif ($x->{przedmiot} =~ /^l$/)
                         {
-                            $p = "L"; # liceum
+                            $pp .= "L"; # liceum
                         }
                         else
                         {
-                            $p = "K"; # kolo
+                            $pp .= "K"; # kolo
                         }
                     }
                     else
                     {
-                        $p = fklasa_footnotesize($x->{klasa});
+                        $pp .= fklasa_footnotesize($x->{klasa});
                     }
 
                     $s = $x->{sala} // "yyyy";
@@ -641,13 +683,12 @@ for my $d (1..5)
                 }
                 else # join
                 {
-                    my $pp = undef;
                     foreach my $j (sort keys %{$x})
                     {
-                        $p .= fklasa_footnotesize($x->{$j}->{klasa}).", ";
+                        $pp .= fklasa_footnotesize($x->{$j}->{klasa}).", ";
                         $s = $x->{$j}->{sala} unless defined $s;
                     }
-                    $p =~ s/, $//;
+                    $pp =~ s/, $//;
 
                     # foreach my $j (keys %{$x}) # wersja ze scalaniem
                     # {
@@ -669,19 +710,20 @@ for my $d (1..5)
 
                 }
 
-                foreach (keys %{$x->{flaga}}) { $p .= $fx{$_} if m/[PBG]/ } #???
+                foreach (keys %{$x->{flaga}}) { $pp .= $fx{$_} if m/[PBG]/ } #???
 
                 $s = $ini->{sale}->{$s} if exists $ini->{sale}->{$s};
 
-                $p = '\X{'.$p.'\\\\{}'.$s.'}';
+                $p .= '\X{'.$pp.'\\\\{}'.$s.'}';
 
             }
 
-            print R " $p ";
-            print R " ! " if ($k < $teachers_no);
+            $p .= " ! " if ($k < $teachers_no);
         }
 
-        print R '\E!', "\n";
+        $p .= '\E!';
+        print R "\n$p\n";
+
         if ($h < $hours_end)
         {
             print R '\B!- | @'.($teachers_no+2).' \- \E!', "\n" ;
@@ -693,10 +735,12 @@ for my $d (1..5)
 
     }
 }
+print R "\n$postrow\n";
 
 print R '\=', "\n";
 
-print R $footer;
+# print R $footer;
+print R "\\endanchtable\n\n~ ~ ";
 open(H, "footer.tex.txt"); while (<H>) { print R $_; }; close(H);
 close(R);
 
@@ -707,6 +751,7 @@ close(R);
 print STDERR "### R3\n" if $DEBUG;
 open(R, ">r3.tex");
 open(H, "header.tex.txt"); while (<H>) { print R $_; }; close(H);
+print R "\\begintable\\begintableformat &\\center \\endtableformat\n";
 
 print R '\=', "\n";
 print R '\B!=2cm ! ! ! @'.($rooms_no - 2).' \center{\Huge\sffamily\bfseries S A L E}  " @2 \center{\Large\bfseries '.$YEAR.'} \E!', "\n";
@@ -735,6 +780,7 @@ for my $d (1..5)
 
 
         my $k = 0;
+        my $p = "";
         foreach (sort { $a <=> $b } keys %{$room})
         {
 
@@ -743,18 +789,17 @@ for my $d (1..5)
 
             my $x = $room->{$_}->{$d * 10 + $h};
 
-            my $p = "";
 
             if ($x)
             {
                 if (exists $x->{nauczyciel}) # no join
                 {
-                    $p = '\footnotesize '.namei($teachers{$x->{nauczyciel}});
+                    $p .= '\footnotesize '.namei($teachers{$x->{nauczyciel}});
                 }
                 elsif (scalar(keys(%{$x})) == 1) # only 1 in join
                 {
                     my @a = keys(%{$x});
-                    $p = '\footnotesize '.namei($teachers{$x->{$a[0]}->{nauczyciel}});
+                    $p .= '\footnotesize '.namei($teachers{$x->{$a[0]}->{nauczyciel}});
                 }
                 else
                 {
@@ -777,10 +822,11 @@ for my $d (1..5)
 
             }
 
-            print R " $p ";
-            print R " ! " if ($k < $rooms_no);
+            $p = " $p ";
+            $p .= " ! " if ($k < $rooms_no);
         }
 
+        print R "$p\n";
         print R '\E!', "\n";
         if ($h < $hours_end)
         {
@@ -840,6 +886,10 @@ foreach my $t (sort keys %teachers)
     print R '\E!', "\n";
 
     print R '\=', "\n";
+
+    # przerwa przed 1 lekcją
+    print R '\B!: ! ', fgodz($ini->{przerwy}->{$hours_start-1}), ' ! ! ! ! ! \E!',"\n";
+    print R '\-', "\n";
 
     my $anchor = 0;
     for my $h ($hours_start..$hours_end) # (0..9)
