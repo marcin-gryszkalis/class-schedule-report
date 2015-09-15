@@ -130,9 +130,19 @@ sub klasaunfix($)
 }
 
 sub fklasa_footnotesize($)
-{
-    my $k = fklasa(shift);
-    $k =~ s/small/footnotesize/;
+{   
+    my $k = shift;
+    $k = fklasa($k);
+    $k =~ s/small/footnotesize/g;
+    return $k;
+}
+
+sub fklasa_tiny($)
+{   
+    my $k = shift;
+    $k = fklasa($k);
+    $k =~ s/(\d+)/\\footnotesize $1/g;
+    $k =~ s/small/tiny/g;
     return $k;
 }
 
@@ -590,6 +600,13 @@ close(R);
 
 $klasy_no = scalar keys %klasy; # restore proper val after r1mode==2, just in case
 
+
+####
+delete $teachers{"Rezerwacja"};
+my $teachers_no = scalar keys %teachers;
+
+####
+
 #################################
 # report 2
 # teachers/hours
@@ -683,30 +700,41 @@ for my $d (1..5)
                 }
                 else # join
                 {
+                    # without join:
+                    # my $jc = 0;
+                    # foreach my $j (sort keys %{$x})
+                    # {
+                    #     $pp .= fklasa_footnotesize($x->{$j}->{klasa}).", ";
+                    #     $s = $x->{$j}->{sala} unless defined $s;
+                    #     $jc++;
+                    # }
+                    # $pp =~ s/, $//;
+
+                    my $jc = 0;
                     foreach my $j (sort keys %{$x})
                     {
-                        $pp .= fklasa_footnotesize($x->{$j}->{klasa}).", ";
+                        $pp .= $x->{$j}->{klasa}.":";
                         $s = $x->{$j}->{sala} unless defined $s;
+                        $jc++;
                     }
-                    $pp =~ s/, $//;
 
-                    # foreach my $j (keys %{$x}) # wersja ze scalaniem
-                    # {
-                    #     my ($k1, $k2) = split//, klasaunfix($x->{$j}->{klasa}), 2;
-                    #     $pp->{$k1}->{uc($k2)} = 1;
-                    # }
+                    for (1..5) # 5 justs in case
+                    {
+                        $pp =~ s/(\d)([a-z]+):(\1)([a-z]+)/$1$2$4/g;
+                    }
+                    $pp =~ s/: *$//;
+                    $pp =~ s/:/ /g;
 
-                    # foreach my $k1 (sort keys %{$pp})
-                    # {
-                    #     $p .= $rom{$k1};
-                    #     $p .= '\footnotesize{';
-                    #     foreach my $k2 (sort keys %{$pp->{$k1}})
-                    #     {
-                    #         $p .= $k2;
-                    #     }
-                    #     $p .= '}, ';
+                    if (length $pp > 3)
+                    {
+                        $pp =~ s/(\S+)/fklasa_tiny($1)/ge;    
+                    }
+                    else
+                    {
+                        $pp =~ s/(\S+)/fklasa_footnotesize($1)/ge;
+                    }
+                    
 
-                    # }
 
                 }
 
@@ -794,7 +822,15 @@ for my $d (1..5)
             {
                 if (exists $x->{nauczyciel}) # no join
                 {
-                    $p .= '\footnotesize '.namei($teachers{$x->{nauczyciel}});
+                    if ($x->{nauczyciel} eq 'Rezerwacja')
+                    {
+                        $p .= '\footnotesize Liceum';
+                    }
+                    else
+                    {
+                        $p .= '\footnotesize '.namei($teachers{$x->{nauczyciel}});    
+                    }
+                    
                 }
                 elsif (scalar(keys(%{$x})) == 1) # only 1 in join
                 {
