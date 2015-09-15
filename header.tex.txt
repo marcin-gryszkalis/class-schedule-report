@@ -22,5 +22,3 @@
 %\begin{center}
 %\huge\bfseries TYGODNIOWY ROZK£AD ZAJÊÆ\\
 %\end{center}
-\begintable
-\begintableformat &\center \endtableformat
